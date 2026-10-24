@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, timedelta
+from html import escape
 import logging
 
 import yaml
@@ -60,6 +61,23 @@ def build_report():
     text += f"Желательно получить новое назначение в районе {remind:%d.%m.%Y}"
     return text
 
+
+def build_report():
+    ends, earliest_name, remind = calc()
+    text = "<b>Расчет даты следующей выписки лекарств</b>\n\n"
+    text += f"Дата получения: {PICKUP_DATE:%d.%m.%Y}\n"
+    for drug in DRUGS:
+        text += (
+            f"- {escape(drug.name)}: {drug.tablets} таблеток, "
+            f"по {drug.per_day} в день (всего дней: {drug.supply_days}) "
+            f"-> закончится {ends[drug.name]:%d.%m.%Y}\n"
+        )
+    text += (
+        f"\nРаньше всех заканчивается <b>{escape(earliest_name)}</b> "
+        f"({ends[earliest_name]:%d.%m.%Y})\n\n"
+    )
+    text += f"Желательно получить новое назначение в районе <b>{remind:%d.%m.%Y}</b>"
+    return text
 
 if __name__ == "__main__":
     print(build_report())

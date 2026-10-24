@@ -1,4 +1,5 @@
 from telegram import Update
+from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 from calculate import build_report
@@ -11,7 +12,7 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def report(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(build_report())
+    await update.message.reply_text(build_report(), parse_mode=ParseMode.HTML)
 
 
 async def chat_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
