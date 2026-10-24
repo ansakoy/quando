@@ -7,4 +7,13 @@ wheels/
 *.egg-info
 
 # Virtual environments
+.env
 .venv
+
+# Agents
+
+# Local files
+conditions.yml
+
+# Logs
+*.log
