@@ -7,12 +7,16 @@ logger = logging.getLogger(__name__)
 
 
 MONTHS = {
+# кириллица
     "янв": 1, "фев": 2, "мар": 3, "апр": 4, "мая": 5, "май": 5, "июн": 6,
     "июл": 7, "авг": 8, "сен": 9, "окт": 10, "ноя": 11, "дек": 12,
+    # латиница
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
 }
 
 NUMERIC_RE = re.compile(r"^(\d{1,2})\.(\d{1,2})(?:\.(\d{4}|\d{2}))?$")
-TEXT_RE = re.compile(r"^(\d{1,2})\s+([а-яё]+)\.?(?:\s+(\d{4}))?(?:\s*г\.?)?$")
+TEXT_RE = re.compile(r"^(\d{1,2})\s+([а-яёa-z]+)\.?(?:\s+(\d{4}))?(?:\s*г\.?)?$")
 
 
 def parse_date(text: str, today: date | None = None) -> date:
