@@ -69,6 +69,26 @@ async def new_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     await update.message.reply_text(build_input_report(drugs), parse_mode=ParseMode.HTML)
 
 
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = (
+        "<b>Доступные команды:</b>\n\n"
+        "/hello — поздороваться.\n\n"
+        "/today — отчёт на сегодня: сколько таблеток осталось до следующего назначения.\n\n"
+        "/report — полный отчёт по всем препаратам с датой ближайшего следующего назначения.\n\n"
+        "/date — установить дату получения препаратов. Например:\n"
+        "<code>/date 26.10.2026</code>, <code>/date 1 окт</code>, <code>/date 01 октября 2026</code>\n\n"
+        "/new — добавить препараты. Данные присылаются в том же сообщении после команды, "
+        "по одному препарату на строку в формате «название, количество, приёмов в день». Например:\n"
+        "<code>/new\n"
+        "Левотироксин натрия, 200, 1\n"
+        "Гидрокортизон, 200, 2\n"
+        "Десмопрессин, 180, 2</code>\n\n"
+        "/chat_id — показать ID текущего чата.\n\n"
+        "/help — это сообщение со списком команд."
+    )
+    await update.message.reply_text(text, parse_mode=ParseMode.HTML)
+
+
 def main() -> None:
     application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("hello", hello))
@@ -77,6 +97,7 @@ def main() -> None:
     application.add_handler(CommandHandler("date", date_command))
     application.add_handler(CommandHandler("today", today_command))
     application.add_handler(CommandHandler("new", new_command))
+    application.add_handler(CommandHandler("help", help_command))
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
