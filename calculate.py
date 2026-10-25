@@ -2,11 +2,13 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from html import escape
 import logging
+from math import floor
 import os
 import tempfile
 
 import yaml
 
+import constants as c
 from settings import CONDITIONS_PATH
 
 
@@ -14,13 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 
-def read_conditions():
+def load_conditions():
+    """Получаем условия для расчетов из файла"""
     try:
         with open(CONDITIONS_PATH, encoding="utf-8") as handler:
             return yaml.safe_load(handler) or {}
     except FileNotFoundError:
         logger.error("Не удалось найти файл с условиями: %s", CONDITIONS_PATH)
-        return {"data": []}
+        return {c.DATA: []}
 
 
 @dataclass
@@ -35,16 +38,26 @@ class Drug:
 
 
 def calc(pickup: date, drugs, warn_days: int = 14):
+    """Рассчитываем дату следующего назначения относительно даты получения и количества таблеток"""
     ends = {d.name: pickup + timedelta(days=d.supply_days) for d in drugs}
     earliest_name = min(ends, key=ends.get)
     remind = ends[earliest_name] - timedelta(days=warn_days)
     return ends, earliest_name, remind
 
 
+def remaining_pills(drug: dict, pickup: date, today: date) -> tuple[float, int]:
+    """Возвращает (остаток таблеток, дней хватит) на утро дня `today`,
+    до приёма сегодняшней дозы."""
+    elapsed = max(0, (today - pickup).days)  # если получение в будущем, остаток полный
+    left = max(0, drug[c.NUM_PILLS] - drug[c.PER_DAY] * elapsed)
+    return left, floor(left / drug[c.PER_DAY])
+
+
 def build_report():
-    conditions = read_conditions()
-    pickup_date = conditions.get("pickup_date")
-    drugs = [Drug(entry["name"], entry["num_pills"], entry["per_day"]) for entry in conditions.get("data", [])]
+    """Формируем отчет о дате следующего назначения"""
+    conditions = load_conditions()
+    pickup_date = conditions.get(c.PICKUP_DATE)
+    drugs = [Drug(entry[c.NAME], entry[c.NUM_PILLS], entry[c.PER_DAY]) for entry in conditions.get(c.DATA, [])]
     ends, earliest_name, remind = calc(pickup=pickup_date, drugs=drugs)
     text = "<b>Расчет даты следующей выписки лекарств</b>\n\n"
     text += f"Дата получения: {pickup_date:%d.%m.%Y}\n"
@@ -62,14 +75,25 @@ def build_report():
     return text
 
 
+def build_today_report(today: date | None = None) -> str:
+    today = today or date.today()
+    conditions = load_conditions()
+    pickup = conditions[c.PICKUP_DATE]
+
+    text = f"<b>Остаток таблеток на {today:%d.%m.%Y}</b>\n\n"
+    for drug in conditions[c.DATA]:
+        left, days = remaining_pills(drug, pickup, today)
+        end = today + timedelta(days=days)
+        text += (
+            f"- {escape(drug[c.NAME])}: <b>{left:g}</b> таблеток "
+            f"(хватит на {days} дн., до {end:%d.%m.%Y})\n"
+        )
+    return text
+
+
 def set_pickup_date(new_date: date) -> None:
     """Меняем только pickup_date, остальное содержимое файла не трогаем"""
-    try:
-        with open(CONDITIONS_PATH, encoding="utf-8") as handler:
-            conditions = yaml.safe_load(handler) or {}
-    except FileNotFoundError:
-        conditions = {"data": []}
-
+    conditions = load_conditions()
     conditions["pickup_date"] = new_date
 
     # атомарная запись: пишем во временный файл и подменяем

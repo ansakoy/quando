@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-from calculate import build_report, set_pickup_date
+from calculate import build_report, build_today_report, set_pickup_date
 from parsers import parse_date
 from settings import BOT_TOKEN
 
@@ -37,12 +37,17 @@ async def date_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_text(f"Дата получения: {new_date:%d.%m.%Y}")
 
 
+async def today_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(build_today_report(), parse_mode=ParseMode.HTML)
+
+
 def main() -> None:
     application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("hello", hello))
     application.add_handler(CommandHandler("report", report))
     application.add_handler(CommandHandler("chat_id", chat_id))
     application.add_handler(CommandHandler("date", date_command))
+    application.add_handler(CommandHandler("today", today_command))
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
