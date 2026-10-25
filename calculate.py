@@ -91,18 +91,38 @@ def build_today_report(today: date | None = None) -> str:
     return text
 
 
-def set_pickup_date(new_date: date) -> None:
-    """Меняем только pickup_date, остальное содержимое файла не трогаем"""
+def build_input_report(drugs):
     conditions = load_conditions()
-    conditions["pickup_date"] = new_date
+    conditions[c.DATA] = drugs
+    atomic_save(conditions)
 
-    # атомарная запись: пишем во временный файл и подменяем
+    text = "<b>Список препаратов сохранён</b>\n\n"
+    for d in drugs:
+        days = floor(d[c.NUM_PILLS] / d[c.PER_DAY])
+        text += (
+            f"- {escape(d[c.NAME])}: {d[c.NUM_PILLS]} таблеток, "
+            f"по {d[c.NUM_PILLS]} в день (всего дней: {days})\n"
+        )
+    text += "\nОсталось указать дату получения (команда /date <дата>)"
+
+
+def atomic_save(conditions: dict) -> None:
+    """Атомарная запись yaml"""
     dir_ = os.path.dirname(os.path.abspath(CONDITIONS_PATH))
     with tempfile.NamedTemporaryFile(
         "w", encoding="utf-8", dir=dir_, delete=False, suffix=".tmp"
     ) as tmp:
         yaml.safe_dump(conditions, tmp, allow_unicode=True, sort_keys=False)
     os.replace(tmp.name, CONDITIONS_PATH)
+
+
+
+def set_pickup_date(new_date: date) -> None:
+    """Меняем только pickup_date, остальное содержимое файла не трогаем"""
+    conditions = load_conditions()
+    conditions["pickup_date"] = new_date
+    atomic_save(conditions)
+
 
 
 if __name__ == "__main__":

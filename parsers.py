@@ -56,5 +56,54 @@ def parse_date(text: str, today: date | None = None) -> date:
         raise ValueError(msg)
 
 
+def parse_drugs(text: str) -> tuple[list[dict], list[str]]:
+    """Разбираем строки 'название, всего_таблеток, сколько_раз_в_день'.
+    Возвращает (список препаратов, список ошибок)."""
+    drugs, errors, seen = [], [], set()
+
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    for i, line in enumerate(lines, 1):
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) != 3:
+            errors.append(
+                f"Строка {i}: нужно 3 поля через запятую, найдено {len(parts)} "
+                f"(дробное число нужно писать через точку: 0.5)"
+            )
+            continue
+
+        name, pills_raw, per_day_raw = parts
+        if not name:
+            errors.append(f"Строка {i}: пустое название")
+            continue
+        if name.lower() in seen:
+            errors.append(f"Строка {i}: «{name}» уже есть выше")
+            continue
+
+        try:
+            num_pills = int(pills_raw)
+            if num_pills <= 0:
+                raise ValueError
+        except ValueError:
+            errors.append(f"Строка {i} ({name}): число таблеток должно быть целым и больше 0, а не «{pills_raw}»")
+            continue
+
+        try:
+            per_day = float(per_day_raw)
+            if per_day <= 0:
+                raise ValueError
+        except ValueError:
+            errors.append(f"Строка {i} ({name}): приём в день должен быть числом больше 0, а не «{per_day_raw}»")
+            continue
+        if per_day.is_integer():
+            per_day = int(per_day)
+
+        seen.add(name.lower())
+        drugs.append({"name": name, "num_pills": num_pills, "per_day": per_day})
+
+    if not lines:
+        errors.append("Не найдено ни одной строки с данными")
+    return drugs, errors
+
+
 if __name__ == "__main__":
     print(parse_date("31 янв"))
