@@ -45,7 +45,7 @@ def build_report():
     conditions = read_conditions()
     pickup_date = conditions.get("pickup_date")
     drugs = [Drug(entry["name"], entry["num_pills"], entry["per_day"]) for entry in conditions.get("data", [])]
-    ends, earliest_name, remind = calc(pickup=pickup_date)
+    ends, earliest_name, remind = calc(pickup=pickup_date, drugs=drugs)
     text = "<b>Расчет даты следующей выписки лекарств</b>\n\n"
     text += f"Дата получения: {pickup_date:%d.%m.%Y}\n"
     for drug in drugs:
