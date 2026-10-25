@@ -42,6 +42,7 @@ def main() -> None:
     application.add_handler(CommandHandler("hello", hello))
     application.add_handler(CommandHandler("report", report))
     application.add_handler(CommandHandler("chat_id", chat_id))
+    application.add_handler(CommandHandler("date", date_command))
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
