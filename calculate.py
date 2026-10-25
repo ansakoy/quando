@@ -103,7 +103,7 @@ def build_input_report(drugs):
             f"- {escape(d[c.NAME])}: {d[c.NUM_PILLS]} таблеток, "
             f"по {d[c.NUM_PILLS]} в день (всего дней: {days})\n"
         )
-    text += "\nОсталось указать дату получения (команда /date <дата>)"
+    text += "\nОсталось указать дату получения (команда /date ДАТА)"
     return text
 
 
