@@ -1,0 +1,5 @@
+PICKUP_DATE = "pickup_date"
+DATA = "data"
+NAME = "name"
+NUM_PILLS = "num_pills"
+PER_DAY = "per_day"
