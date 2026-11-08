@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/prescription.json",
+  "title": "Назначение льготных лекарств",
+  "description": "Документ врача с перечнем льготных лекарств, дозировками и графиком их получения в аптеке.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "start_date",
+    "end_date",
+    "next_date",
+    "medicines"
+  ],
+  "properties": {
+    "id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Уникальный инкрементируемый идентификатор назначения."
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Дата начала действия назначения."
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Дата наиболее раннего израсходования лекарства из назначения: минимум среди depletion_date всех medicines."
+    },
+    "next_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Дата получения нового назначения у врача: end_date минус 14 дней."
+    },
+    "medicines": {
+      "type": "array",
+      "description": "Льготные лекарства, включённые в назначение.",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/medicine"
+      }
+    }
+  },
+  "$defs": {
+    "medicine": {
+      "title": "Лекарство",
+      "description": "Льготное лекарственное средство, назначенное врачом и выдаваемое аптекой бесплатно.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "num_pills",
+        "per_day",
+        "depletion_date",
+        "pick_ups"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Наименование лекарственного средства."
+        },
+        "num_pills": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Общее число таблеток, назначенное в рамках текущего назначения."
+        },
+        "per_day": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Суточная дозировка: сколько таблеток принимать в сутки."
+        },
+        "depletion_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Дата физического окончания лекарств, полученных на данный момент. Рассчитывается от первого pick_ups.date в рамках назначения, с учётом полученного количества и per_day."
+        },
+        "pick_ups": {
+          "type": "array",
+          "description": "Получения лекарства в аптеке в рамках текущего назначения.",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/pickUp"
+          }
+        }
+      }
+    },
+    "pickUp": {
+      "title": "Получение лекарства",
+      "description": "Однократное получение части или полного объёма лекарства в аптеке.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "date",
+        "num_pills",
+        "next_date"
+      ],
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "Дата получения лекарства в аптеке."
+        },
+        "num_pills": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Количество таблеток, полученное в данную дату."
+        },
+        "next_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Дата следующего получения порции этого лекарства в рамках текущего назначения: medicines.depletion_date минус 7 дней."
+        }
+      }
+    }
+  }
+}

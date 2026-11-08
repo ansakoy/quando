@@ -1,0 +1,39 @@
+{
+  "id": 42,
+  "start_date": "2026-11-01",
+  "end_date": "2026-11-30",
+  "next_date": "2026-11-16",
+  "medicines": [
+    {
+      "name": "Метформин 850 мг",
+      "num_pills": 60,
+      "per_day": 2,
+      "depletion_date": "2026-11-30",
+      "pick_ups": [
+        {
+          "date": "2026-11-01",
+          "num_pills": 60,
+          "next_date": "2026-11-23"
+        }
+      ]
+    },
+    {
+      "name": "Аторвастатин 20 мг",
+      "num_pills": 90,
+      "per_day": 3,
+      "depletion_date": "2026-11-10",
+      "pick_ups": [
+        {
+          "date": "2026-11-01",
+          "num_pills": 30,
+          "next_date": "2026-11-03"
+        },
+        {
+          "date": "2026-11-03",
+          "num_pills": 30,
+          "next_date": "2026-11-10"
+        }
+      ]
+    }
+  ]
+}
