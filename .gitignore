@@ -11,9 +11,11 @@ wheels/
 .venv
 
 # Agents
+.kilo/
 
 # Local files
 conditions.yml
+data/
 
 # Logs
 *.log

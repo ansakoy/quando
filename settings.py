@@ -8,6 +8,13 @@ BASE_DIR = Path(__file__).resolve().parent
 CONDITIONS_FILE = "conditions.yml"
 CONDITIONS_PATH = BASE_DIR / CONDITIONS_FILE
 
+DATA_DIR = "data"
+PRESCRIPTIONS_FILE = "prescriptions.jsonl"
+DELETED_FILE = "deleted.jsonl"
+DATA_PATH = BASE_DIR / DATA_DIR
+PRESCRIPTIONS_PATH = DATA_PATH / PRESCRIPTIONS_FILE
+DELETED_PATH = DATA_PATH / DELETED_FILE
+
 BOT_TOKEN = config("BOT_TOKEN")
 DEBUG = config("DEBUG", default=False, cast=bool)
 
