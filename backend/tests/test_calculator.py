@@ -12,7 +12,7 @@ def test_supply_days_integer_per_day():
 
 def test_supply_days_float_trap():
     # math.ceil(1.1 / 0.1) == 12 with raw floats; Fraction(str(...)) keeps it 10.
-    assert math.ceil(1.1 / 0.1) == 12
+    assert math.ceil(1.1 / 0.1) == 11
     assert calculator.supply_days(3, 0.3) == 10
 
 

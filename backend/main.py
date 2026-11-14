@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.routes import router
-from backend.service import PrescriptionNotFound
+from backend.service import BackupNotFound, PrescriptionNotFound
 from backend.storage import StoreCorrupted
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
@@ -26,6 +26,13 @@ def handle_request_validation_error(request: Request, exc: RequestValidationErro
 def handle_prescription_not_found(request: Request, exc: PrescriptionNotFound):
     return JSONResponse(
         status_code=404, content={"detail": f"prescription {exc.args[0]} not found"}
+    )
+
+
+@app.exception_handler(BackupNotFound)
+def handle_backup_not_found(request: Request, exc: BackupNotFound):
+    return JSONResponse(
+        status_code=404, content={"detail": f"backup file not found: {exc.args[0]}"}
     )
 
 

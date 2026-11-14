@@ -2,6 +2,8 @@ import json
 import re
 from datetime import date
 
+import settings
+
 FULL_PAYLOAD = {
     "start_date": "2026-03-02",
     "medicines": [
@@ -287,3 +289,130 @@ class TestRoundTrip:
         stored = read_lines(prescriptions_path)[0]
         dates = [pick_up["date"] for pick_up in stored["medicines"][1]["pick_ups"]]
         assert dates == sorted(dates)
+
+
+QUANDO_FULL_BODY = (
+    "<b>Назначение от 02.03.2026</b>:\n"
+    "\n"
+    "Желательно получить новое в районе <b>19.04.2026</b>.\n"
+    "\n"
+    "Из лекарств первым заканчивается <b>Препарат Б</b>, "
+    "нужно получить еще в районе <b>26.04.2026</b>.\n"
+    "\n"
+    "<b>Подробности назначения</b>:\n"
+    "\n"
+    "- Препарат А: 90 таблеток, по 1 в день -> закончится 02.06.2026\n"
+    "- Препарат Б: 120 таблеток, по 2 в день -> закончится 03.05.2026"
+)
+
+
+class TestQuando:
+    def test_content_type_is_text_plain_utf8(self, client):
+        client.post("/api/prescriptions/", json=FULL_PAYLOAD)
+        response = client.get("/api/quando/")
+        assert response.status_code == 200
+        content_type = response.headers["content-type"]
+        assert content_type.startswith("text/plain")
+        assert "charset=utf-8" in content_type
+
+    def test_body_matches_expected_for_full_payload(self, client):
+        client.post("/api/prescriptions/", json=FULL_PAYLOAD)
+        response = client.get("/api/quando/")
+        assert response.text == QUANDO_FULL_BODY
+        assert not response.text.endswith("\n")
+
+    def test_empty_store_returns_no_data_message_200(self, client):
+        response = client.get("/api/quando/")
+        assert response.status_code == 200
+        assert response.text.startswith("❗️❗️❗️ Нет необходимых данных для расчета сроков.")
+
+    def test_warning_when_latest_has_no_next_date(self, client):
+        client.post("/api/prescriptions/", json=FULL_PAYLOAD)
+        client.post("/api/prescriptions/", json={"start_date": "2026-11-14"})
+        response = client.get("/api/quando/")
+        assert response.status_code == 200
+        assert response.text.startswith(
+            "❗️❗️❗️ Последним добавлено назначение от <b>14.11.2026</b>, "
+            "но у него недостаточно данных для расчета сроков."
+        )
+        assert f"\n\n{QUANDO_FULL_BODY}" in response.text
+
+    def test_cyrillic_is_not_mojibake(self, client):
+        client.post("/api/prescriptions/", json=FULL_PAYLOAD)
+        response = client.get("/api/quando/")
+        decoded = response.content.decode("utf-8")
+        assert decoded == response.text
+        assert "Препарат А" in decoded
+        assert "Назначение" in decoded
+
+    def test_site_url_taken_from_settings(self, client, monkeypatch):
+        monkeypatch.setattr(settings, "SITE_URL", "https://quando.test")
+        response = client.get("/api/quando/")
+        assert response.status_code == 200
+        assert "https://quando.test" in response.text
+
+
+class TestBackup:
+    def test_route_order_backup_not_swallowed_by_id_route(self, client):
+        client.post("/api/prescriptions/", json=FULL_PAYLOAD)
+        response = client.get("/api/prescriptions/backup/")
+        assert response.status_code == 200
+
+    def test_backup_matches_file_byte_for_byte(self, client, prescriptions_path):
+        client.post("/api/prescriptions/", json=FULL_PAYLOAD)
+        response = client.get("/api/prescriptions/backup/")
+        assert response.status_code == 200
+        assert response.content == prescriptions_path.read_bytes()
+        assert response.headers["content-type"].startswith("application/x-ndjson")
+        assert re.fullmatch(
+            r'attachment; filename="prescriptions_\d{8}\.jsonl"',
+            response.headers["content-disposition"],
+        )
+
+    def test_filename_date_is_today(self, client):
+        client.post("/api/prescriptions/", json=FULL_PAYLOAD)
+        response = client.get("/api/prescriptions/backup/")
+        expected = f'attachment; filename="prescriptions_{date.today():%Y%m%d}.jsonl"'
+        assert response.headers["content-disposition"] == expected
+
+    def test_missing_files_return_404_with_detail(self, client):
+        response = client.get("/api/prescriptions/backup/")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "backup file not found: prescriptions"}
+        response = client.get("/api/prescriptions/backup-deleted/")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "backup file not found: deleted"}
+
+    def test_backup_deleted_lifecycle(self, client, deleted_path):
+        created = client.post("/api/prescriptions/", json=FULL_PAYLOAD).json()
+        assert client.get("/api/prescriptions/backup-deleted/").status_code == 404
+        client.delete(f"/api/prescriptions/{created['id']}/")
+        response = client.get("/api/prescriptions/backup-deleted/")
+        assert response.status_code == 200
+        assert response.content == deleted_path.read_bytes()
+        assert "deleted_at" in response.text
+        assert re.fullmatch(
+            r'attachment; filename="deleted_\d{8}\.jsonl"',
+            response.headers["content-disposition"],
+        )
+
+    def test_corrupt_line_still_served_200(self, client, prescriptions_path):
+        prescriptions_path.parent.mkdir(parents=True, exist_ok=True)
+        prescriptions_path.write_bytes(b"{not json}\n")
+        response = client.get("/api/prescriptions/backup/")
+        assert response.status_code == 200
+        assert response.content == b"{not json}\n"
+
+    def test_deleted_backup_is_never_truncated(self, client):
+        first = client.post("/api/prescriptions/", json={}).json()
+        second = client.post("/api/prescriptions/", json={}).json()
+        client.delete(f"/api/prescriptions/{first['id']}/")
+        client.delete(f"/api/prescriptions/{second['id']}/")
+        response = client.get("/api/prescriptions/backup-deleted/")
+        assert response.status_code == 200
+        lines = [
+            json.loads(line)
+            for line in response.content.decode("utf-8").splitlines()
+            if line.strip()
+        ]
+        assert [record["id"] for record in lines] == [1, 2]

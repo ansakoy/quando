@@ -1,10 +1,31 @@
 from datetime import date
+from pathlib import PurePath
 
-from backend import calculator, models, storage
+import settings
+from backend import calculator, models, report, storage
 
 
 class PrescriptionNotFound(Exception):
     pass
+
+
+class BackupNotFound(Exception):
+    pass
+
+
+def build_quando_report() -> str:
+    records = [models.serialize_record(record) for record in storage.read_prescriptions()]
+    return report.build(records, settings.SITE_URL)
+
+
+def get_backup(kind: str, today: date | None = None) -> tuple[str, bytes]:
+    result = storage.read_backup(kind)
+    if result is None:
+        raise BackupNotFound(kind)
+    name, content = result
+    today = today or date.today()
+    original = PurePath(name)
+    return f"{original.stem}_{today:%Y%m%d}{original.suffix}", content
 
 
 def _record_from_payload(start_date: date, medicines: list[models.MedicineIn]) -> dict:

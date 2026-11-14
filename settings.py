@@ -17,6 +17,7 @@ DELETED_PATH = DATA_PATH / DELETED_FILE
 
 BOT_TOKEN = config("BOT_TOKEN")
 DEBUG = config("DEBUG", default=False, cast=bool)
+SITE_URL = config("SITE_URL", default="сайт не указан")
 
 import logging
 

@@ -63,6 +63,19 @@ def _next_id() -> int:
     return max(ids) + 1 if ids else 1
 
 
+def read_backup(kind: str) -> tuple[str, bytes] | None:
+    """(оригинальное имя файла, сырое содержимое) или None, если файла нет. Без парсинга."""
+    with _LOCK:
+        paths = {
+            "prescriptions": settings.PRESCRIPTIONS_PATH,
+            "deleted": settings.DELETED_PATH,
+        }
+        path = paths.get(kind)
+        if path is None or not path.exists():
+            return None
+        return path.name, path.read_bytes()
+
+
 def read_prescriptions() -> list[dict]:
     with _LOCK:
         by_id: dict[int, dict] = {}
