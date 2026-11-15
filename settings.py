@@ -16,6 +16,8 @@ PRESCRIPTIONS_PATH = DATA_PATH / PRESCRIPTIONS_FILE
 DELETED_PATH = DATA_PATH / DELETED_FILE
 
 BOT_TOKEN = config("BOT_TOKEN")
+CHAT_ID = config("CHAT_ID", default=0)
+TG_USERNAME = config("TG_USERNAME", default="")
 DEBUG = config("DEBUG", default=False, cast=bool)
 SITE_URL = config("SITE_URL", default="сайт не указан")
 API_URL = config("API_URL", default="http://127.0.0.1:8000")

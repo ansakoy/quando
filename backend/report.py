@@ -61,7 +61,7 @@ def _body(record: dict) -> str:
         )
     paragraphs.append("<b>Подробности назначения</b>:")
     details = [
-        f"- {escape(medicine['name'])}: {_fmt_value(medicine.get('num_pills'))} таблеток, "
+        f"- <b>{escape(medicine['name'])}</b>: {_fmt_value(medicine.get('num_pills'))} таблеток, "
         f"по {_fmt_value(medicine.get('per_day'))} в день -> "
         f"закончится {_fmt_date(medicine.get('depletion_date'))}"
         for medicine in record.get("medicines", [])

@@ -56,3 +56,8 @@ def delete_prescription(prescription_id: int):
 @router.get("/quando/", response_class=PlainTextResponse)
 def quando_report():
     return service.build_quando_report()
+
+
+@router.get("/reminder/", response_class=PlainTextResponse)
+def reminder_report():
+    return service.build_reminder()

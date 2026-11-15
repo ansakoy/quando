@@ -2,7 +2,7 @@ from datetime import date
 from pathlib import PurePath
 
 import settings
-from backend import calculator, models, report, storage
+from backend import calculator, models, reminder, report, storage
 
 
 class PrescriptionNotFound(Exception):
@@ -13,9 +13,21 @@ class BackupNotFound(Exception):
     pass
 
 
+class ReminderNotFound(Exception):
+    pass
+
+
 def build_quando_report() -> str:
     records = [models.serialize_record(record) for record in storage.read_prescriptions()]
     return report.build(records, settings.SITE_URL)
+
+
+def build_reminder(today: date | None = None) -> str:
+    records = storage.read_prescriptions()
+    text = reminder.build(records, today or date.today(), settings.TG_USERNAME)
+    if text is None:
+        raise ReminderNotFound()
+    return text
 
 
 def get_backup(kind: str, today: date | None = None) -> tuple[str, bytes]:

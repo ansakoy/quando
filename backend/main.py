@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.routes import router
-from backend.service import BackupNotFound, PrescriptionNotFound
+from backend.service import BackupNotFound, PrescriptionNotFound, ReminderNotFound
 from backend.storage import StoreCorrupted
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
@@ -34,6 +34,11 @@ def handle_backup_not_found(request: Request, exc: BackupNotFound):
     return JSONResponse(
         status_code=404, content={"detail": f"backup file not found: {exc.args[0]}"}
     )
+
+
+@app.exception_handler(ReminderNotFound)
+def handle_reminder_not_found(request: Request, exc: ReminderNotFound):
+    return JSONResponse(status_code=404, content={"detail": "no reminders for today"})
 
 
 @app.exception_handler(StoreCorrupted)

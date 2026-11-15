@@ -68,8 +68,8 @@ EXPECTED_BODY = (
     "\n"
     "<b>Подробности назначения</b>:\n"
     "\n"
-    "- Лекарство 1: 200 таблеток, по 2 в день -> закончится 04.01.2027\n"
-    "- Лекарство 2: 130 таблеток, по 1 в день -> закончится 20.12.2026"
+    "- <b>Лекарство 1</b>: 200 таблеток, по 2 в день -> закончится 04.01.2027\n"
+    "- <b>Лекарство 2</b>: 130 таблеток, по 1 в день -> закончится 20.12.2026"
 )
 
 
@@ -104,8 +104,8 @@ class TestCaseA:
         assert text.count("\n\n") == 4
         details = text.split("\n\n")[-1]
         assert details.split("\n") == [
-            "- Лекарство 1: 200 таблеток, по 2 в день -> закончится 04.01.2027",
-            "- Лекарство 2: 130 таблеток, по 1 в день -> закончится 20.12.2026",
+            "- <b>Лекарство 1</b>: 200 таблеток, по 2 в день -> закончится 04.01.2027",
+            "- <b>Лекарство 2</b>: 130 таблеток, по 1 в день -> закончится 20.12.2026",
         ]
 
     def test_equal_start_dates_higher_id_is_latest(self):
@@ -191,7 +191,7 @@ class TestFormatting:
             medicines=[make_medicine("Препарат Г", per_day=1)],
         )
         text = report.build([record], SITE)
-        assert "- Препарат Г: — таблеток, по 1 в день -> закончится —" in text
+        assert "- <b>Препарат Г</b>: — таблеток, по 1 в день -> закончится —" in text
         assert "Из лекарств первым заканчивается" not in text
 
     def test_missing_per_day_renders_dash(self):
@@ -202,7 +202,7 @@ class TestFormatting:
             medicines=[make_medicine("Препарат Д", num_pills=30)],
         )
         text = report.build([record], SITE)
-        assert "- Препарат Д: 30 таблеток, по — в день -> закончится —" in text
+        assert "- <b>Препарат Д</b>: 30 таблеток, по — в день -> закончится —" in text
 
     def test_names_are_escaped_everywhere(self):
         name = "A & B <b>c</b>"
@@ -216,7 +216,7 @@ class TestFormatting:
         )
         text = report.build([record], SITE)
         assert "<b>A &amp; B &lt;b&gt;c&lt;/b&gt;</b>" in text
-        assert "- A &amp; B &lt;b&gt;c&lt;/b&gt;: 10 таблеток" in text
+        assert "- <b>A &amp; B &lt;b&gt;c&lt;/b&gt;</b>: 10 таблеток" in text
         assert name not in text
 
     def test_fractional_per_day_preserved(self):

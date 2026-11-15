@@ -32,6 +32,14 @@ def read_lines(path):
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
+def write_lines(path, records):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records),
+        encoding="utf-8",
+    )
+
+
 class TestGetList:
     def test_empty_list(self, client):
         response = client.get("/api/prescriptions/")
@@ -301,8 +309,8 @@ QUANDO_FULL_BODY = (
     "\n"
     "<b>Подробности назначения</b>:\n"
     "\n"
-    "- Препарат А: 90 таблеток, по 1 в день -> закончится 02.06.2026\n"
-    "- Препарат Б: 120 таблеток, по 2 в день -> закончится 03.05.2026"
+    "- <b>Препарат А</b>: 90 таблеток, по 1 в день -> закончится 02.06.2026\n"
+    "- <b>Препарат Б</b>: 120 таблеток, по 2 в день -> закончится 03.05.2026"
 )
 
 
@@ -416,3 +424,123 @@ class TestBackup:
             if line.strip()
         ]
         assert [record["id"] for record in lines] == [1, 2]
+
+TODAY_ISO = date.today().isoformat()
+TODAY_DMY = date.today().strftime("%d.%m.%Y")
+
+REMINDER_PREFIX = "🔔 🔔 🔔 @quando_bot"
+PRESCRIPTION_BLOCK = "📋 Пора получать новое назначение! Старое истекает 03.05.2026."
+MEDICINE_BLOCK = "💊 <b>Препарат А</b>: пора получать новую порцию! Заканчивается 02.06.2026."
+
+
+def reminder_medicine(name, depletion_date, next_pick_up_date):
+    return {
+        "name": name,
+        "num_pills": 100,
+        "per_day": 1,
+        "depletion_date": depletion_date,
+        "next_pick_up_date": next_pick_up_date,
+        "pick_ups": [],
+    }
+
+
+def reminder_record(record_id, end_date=None, next_date=None, medicines=None):
+    return {
+        "id": record_id,
+        "start_date": "2026-01-01",
+        "end_date": end_date,
+        "next_date": next_date,
+        "medicines": medicines if medicines is not None else [],
+    }
+
+
+PRESCRIPTION_RECORD = reminder_record(1, end_date="2026-05-03", next_date=TODAY_ISO)
+MEDICINE_RECORD = reminder_record(
+    2,
+    end_date="2026-06-02",
+    next_date="2026-05-19",
+    medicines=[reminder_medicine("Препарат А", "2026-06-02", TODAY_ISO)],
+)
+
+
+class TestReminder:
+    def test_empty_store_returns_404_with_detail(self, client):
+        response = client.get("/api/reminder/")
+        assert response.status_code == 404
+        assert response.json() == {"detail": "no reminders for today"}
+
+    def test_no_dates_matching_today_returns_404(self, client, prescriptions_path):
+        write_lines(
+            prescriptions_path,
+            [
+                reminder_record(1, end_date="2030-01-01", next_date="2029-12-18"),
+                reminder_record(
+                    2,
+                    medicines=[
+                        reminder_medicine("Препарат А", "2030-01-01", "2029-12-25")
+                    ],
+                ),
+            ],
+        )
+        response = client.get("/api/reminder/")
+        assert response.status_code == 404
+        assert "detail" in response.json()
+
+    def test_content_type_is_text_plain_utf8(self, client, prescriptions_path):
+        write_lines(prescriptions_path, [PRESCRIPTION_RECORD])
+        response = client.get("/api/reminder/")
+        assert response.status_code == 200
+        content_type = response.headers["content-type"]
+        assert content_type.startswith("text/plain")
+        assert "charset=utf-8" in content_type
+
+    def test_prescription_block_body(self, client, prescriptions_path, monkeypatch):
+        monkeypatch.setattr(settings, "TG_USERNAME", "quando_bot")
+        write_lines(prescriptions_path, [PRESCRIPTION_RECORD])
+        response = client.get("/api/reminder/")
+        assert response.text == f"{REMINDER_PREFIX}\n\n{PRESCRIPTION_BLOCK}"
+        assert not response.text.endswith("\n")
+
+    def test_medicine_block_body(self, client, prescriptions_path, monkeypatch):
+        monkeypatch.setattr(settings, "TG_USERNAME", "quando_bot")
+        write_lines(prescriptions_path, [MEDICINE_RECORD])
+        response = client.get("/api/reminder/")
+        assert response.text == f"{REMINDER_PREFIX}\n\n{MEDICINE_BLOCK}"
+
+    def test_blocks_order_and_separators(self, client, prescriptions_path, monkeypatch):
+        monkeypatch.setattr(settings, "TG_USERNAME", "quando_bot")
+        write_lines(prescriptions_path, [PRESCRIPTION_RECORD, MEDICINE_RECORD])
+        response = client.get("/api/reminder/")
+        assert response.text == "\n\n".join(
+            [REMINDER_PREFIX, PRESCRIPTION_BLOCK, MEDICINE_BLOCK]
+        )
+
+    def test_tg_username_taken_from_settings(self, client, prescriptions_path, monkeypatch):
+        monkeypatch.setattr(settings, "TG_USERNAME", "dr_house")
+        write_lines(prescriptions_path, [PRESCRIPTION_RECORD])
+        response = client.get("/api/reminder/")
+        assert response.text.startswith("🔔 🔔 🔔 @dr_house\n\n")
+
+    def test_empty_tg_username_keeps_at_sign(self, client, prescriptions_path, monkeypatch):
+        monkeypatch.setattr(settings, "TG_USERNAME", "")
+        write_lines(prescriptions_path, [PRESCRIPTION_RECORD])
+        response = client.get("/api/reminder/")
+        assert response.text.startswith("🔔 🔔 🔔 @\n\n")
+
+    def test_dates_rendered_dd_mm_yyyy(self, client, prescriptions_path, monkeypatch):
+        monkeypatch.setattr(settings, "TG_USERNAME", "quando_bot")
+        write_lines(
+            prescriptions_path, [reminder_record(1, end_date=TODAY_ISO, next_date=TODAY_ISO)]
+        )
+        response = client.get("/api/reminder/")
+        assert TODAY_DMY in response.text
+        assert TODAY_ISO not in response.text
+
+    def test_cyrillic_is_not_mojibake(self, client, prescriptions_path, monkeypatch):
+        monkeypatch.setattr(settings, "TG_USERNAME", "quando_bot")
+        write_lines(prescriptions_path, [MEDICINE_RECORD])
+        response = client.get("/api/reminder/")
+        decoded = response.content.decode("utf-8")
+        assert decoded == response.text
+        assert "Препарат А" in decoded
+        assert "пора получать новую порцию" in decoded
