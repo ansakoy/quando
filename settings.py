@@ -18,6 +18,7 @@ DELETED_PATH = DATA_PATH / DELETED_FILE
 BOT_TOKEN = config("BOT_TOKEN")
 DEBUG = config("DEBUG", default=False, cast=bool)
 SITE_URL = config("SITE_URL", default="сайт не указан")
+API_URL = config("API_URL", default="http://127.0.0.1:8000")
 
 import logging
 
