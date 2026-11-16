@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quandarium.catabasis.ru/schema/prescription.json",
+  "title": "Prescription",
+  "description": "Одно назначение (одна строка файла prescriptions.jsonl). Поля с readOnly: true рассчитываются бэкендом: при создании и редактировании их вносить нельзя, при чтении они присутствуют (null, если их не из чего рассчитать). Минимально допустимая запись содержит только id и start_date.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "start_date"],
+  "properties": {
+    "id": {
+      "description": "Уникальный инкрементируемый ID назначения.",
+      "type": "integer",
+      "minimum": 1,
+      "readOnly": true
+    },
+    "start_date": {
+      "description": "Дата назначения.",
+      "$ref": "#/$defs/date"
+    },
+    "end_date": {
+      "description": "Дата окончания срока назначения: самая ранняя дата израсходования лекарства из назначения. null, если ни у одного лекарства нет получений.",
+      "$ref": "#/$defs/nullableDate",
+      "readOnly": true
+    },
+    "next_date": {
+      "description": "Дата, когда нужно получить новое назначение: end_date минус 14 дней. null, если end_date не определена.",
+      "$ref": "#/$defs/nullableDate",
+      "readOnly": true
+    },
+    "medicines": {
+      "description": "Назначенные лекарства.",
+      "type": "array",
+      "default": [],
+      "items": { "$ref": "#/$defs/medicine" }
+    }
+  },
+  "$defs": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "nullableDate": {
+      "type": ["string", "null"],
+      "format": "date",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "medicine": {
+      "description": "Лекарство из назначения.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "description": "Наименование.",
+          "type": "string",
+          "minLength": 1
+        },
+        "num_pills": {
+          "description": "Число таблеток, назначенное врачом.",
+          "type": ["integer", "null"],
+          "minimum": 1
+        },
+        "per_day": {
+          "description": "Сколько таблеток принимать в сутки.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "depletion_date": {
+          "description": "Дата, когда полученное на данный момент лекарство закончится (последний день, на который хватает таблеток). null, если нет получений или не заданы per_day.",
+          "$ref": "#/$defs/nullableDate",
+          "readOnly": true
+        },
+        "next_pick_up_date": {
+          "description": "Дата, к которой нужно получить новую порцию: depletion_date минус 7 дней. null, если depletion_date не определена.",
+          "$ref": "#/$defs/nullableDate",
+          "readOnly": true
+        },
+        "pick_ups": {
+          "description": "Получения лекарства в аптеке.",
+          "type": "array",
+          "default": [],
+          "items": { "$ref": "#/$defs/pickUp" }
+        }
+      }
+    },
+    "pickUp": {
+      "description": "Получение лекарства в аптеке.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["date", "num_pills"],
+      "properties": {
+        "date": {
+          "description": "Дата получения.",
+          "$ref": "#/$defs/date"
+        },
+        "next_date": {
+          "description": "Дата, к которой нужно было получить следующую порцию, рассчитанная по сумме таблеток, полученных к этому получению включительно, минус 7 дней. null, если не задан per_day.",
+          "$ref": "#/$defs/nullableDate",
+          "readOnly": true
+        },
+        "num_pills": {
+          "description": "Число полученных таблеток.",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}
