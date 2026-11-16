@@ -5,11 +5,6 @@
 Формат основан на [Keep a Changelog](https://keepachangelog.com/ru/1.1.0/).
 Проект придерживается [семантического версионирования](https://semver.org/lang/ru/).
 
-## [Unreleased] — ветка `1-new-interface`
-
-Изменения относительно ветки `master` (8 коммитов, 08.11.2026–15.11.2026):
-`d3b2f15`, `cf01ec5`, `2eba554`, `4b6751c`, `a21a068`, `d0f3fa1`, `0cc6691`, `372a403`.
-
 ### Добавлено
 
 #### Спецификация новой версии
@@ -83,4 +78,4 @@
 - Telegram-бот на `python-telegram-bot`: команды `/help`, `/hello`, `/today`, `/report`, `/date`, `/new`, `/chat_id` — расчёт остатка препаратов по дате получения и нормам приёма из локального YAML-файла `conditions.yml`.
 - Модули `calculate.py` (расчёты и отчёты) и `parsers.py` (разбор текстовых сообщений бота).
 
-[Unreleased]: https://github.com/ansakoy/quando/compare/master...1-new-interface
+
